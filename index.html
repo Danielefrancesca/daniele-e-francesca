@@ -229,10 +229,10 @@
   <iframe id="yt-player" width="0" height="0" frameborder="0" allow="autoplay" style="position:absolute;opacity:0;pointer-events:none;"></iframe>
   <div style="font-size:1.1rem;">🎵</div>
   <div style="display:flex;flex-direction:column;">
-    <span style="font-family:'Montserrat',sans-serif;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(184,213,232,0.6);">In riproduzione</span>
+    <span id="music-label" style="font-family:'Montserrat',sans-serif;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(184,213,232,0.6);">Tocca per ascoltare</span>
     <span style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:0.95rem;color:white;">Un mondo a parte · Jovanotti</span>
   </div>
-  <button id="music-toggle" onclick="toggleMusic()" style="background:rgba(184,213,232,0.15);border:1px solid rgba(184,213,232,0.3);color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;">⏸</button>
+  <button id="music-toggle" onclick="toggleMusic()" style="background:rgba(184,213,232,0.15);border:1px solid rgba(184,213,232,0.3);color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;">▶</button>
   <button onclick="document.getElementById('music-player').style.display='none';document.getElementById('yt-player').src='';" style="background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:0.85rem;padding:0;">✕</button>
 </div>
 
@@ -597,8 +597,7 @@ function checkPwd() {
       s.style.display = 'none';
       // Avvia la musica dopo la password
       document.getElementById('music-player').style.display = 'flex';
-      const yt = document.getElementById('yt-player');
-      yt.src = 'https://www.youtube.com/embed/WgNiZN18Lig?autoplay=1&loop=1&playlist=WgNiZN18Lig&controls=0&showinfo=0&rel=0&modestbranding=1';
+      // Non avviare automaticamente: l'utente dovrà toccare play (necessario su mobile)
     }, 800);
   } else {
     document.getElementById('pwd-err').style.display = 'block';
@@ -625,17 +624,34 @@ function apriLightbox(src) {
 }
 
 // MUSICA
-let musicPlaying = true;
+let musicPlaying = false;
+let musicLoaded = false;
+const YT_SRC = 'https://www.youtube.com/embed/WgNiZN18Lig?autoplay=1&loop=1&playlist=WgNiZN18Lig&controls=0&showinfo=0&rel=0&modestbranding=1&enablejsapi=1';
+
 function toggleMusic() {
   const yt = document.getElementById('yt-player');
   const btn = document.getElementById('music-toggle');
+  const label = document.getElementById('music-label');
+
+  if (!musicLoaded) {
+    // Prima volta: carica l'iframe con autoplay (gesto utente → funziona su mobile)
+    yt.src = YT_SRC;
+    musicLoaded = true;
+    musicPlaying = true;
+    btn.textContent = '⏸';
+    label.textContent = 'In riproduzione';
+    return;
+  }
+
   if (musicPlaying) {
-    yt.src = yt.src.replace('autoplay=1', 'autoplay=0');
+    yt.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
     btn.textContent = '▶';
+    label.textContent = 'In pausa';
     musicPlaying = false;
   } else {
-    yt.src = yt.src.replace('autoplay=0', 'autoplay=1');
+    yt.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
     btn.textContent = '⏸';
+    label.textContent = 'In riproduzione';
     musicPlaying = true;
   }
 }
